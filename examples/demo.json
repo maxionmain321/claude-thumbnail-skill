@@ -1,0 +1,19 @@
+{
+  "output": "C:/tmp/claude-thumbnail-skill/examples/demo.png",
+  "width": 1280, "height": 720,
+  "bg": { "type": "gradient",
+          "value": "radial-gradient(120% 120% at 78% 30%, #243b55 0%, #141e30 55%, #0b1018 100%)" },
+  "elements": [
+    {"type":"rect","x":0,"y":0,"w":520,"h":720,"color":"#0f9d58","opacity":0.10},
+    {"type":"rect","x":690,"y":150,"w":150,"h":150,"color":"#f2843c","opacity":0.16,"blur":40,"radius":75}
+  ],
+  "texts": [
+    {"kind":"highlight","lines":["CONCEPT","→ THUMBNAIL"],"x":60,"y":70,"size":104,"lineh":116,"gap":12,
+     "box":"#e8702a","color":"#fff","font":"anton",
+     "subtitle":{"t":"A FRAMEWORK, NOT A TEMPLATE","size":40,"color":"#cdd6e2","gap":20,"stroke":1,"strokeColor":"#06101f"}},
+    {"kind":"gradient","lines":["1280×720"],"x":60,"y":420,"size":150,"gradient":["#FFF3A6","#FFC400"],"stroke":3,"strokeColor":"#000","font":"anton"},
+    {"kind":"card","lines":[{"t":"HTML + PLAYWRIGHT","color":"#141e30","size":52}],"x":740,"y":470,"w":470,"fill":"#fff","radius":26,"pad":28,"font":"montserrat"},
+    {"kind":"pill","t":"$0 TO RENDER","x":60,"y":610,"fill":"#10B981","color":"#04261a","size":46,"font":"montserrat"}
+  ],
+  "vignette": true
+}

@@ -8,6 +8,11 @@ It's a **framework, not a template**: a decision process that produces *varied* 
 sharing one brand DNA, instead of one layout you re-skin. The whole thing starts at
 [`skills/render-thumbnail/thumbnail-framework.md`](skills/render-thumbnail/thumbnail-framework.md).
 
+![Sample 1280×720 output from the engine](examples/demo.png)
+
+*(Engine demo — highlight boxes, gradient text, card, pill, color zones, vignette. In a real
+thumbnail a big cinematic face cut-out sits on top; see the framework's Step 2.)*
+
 ## What's in the box
 
 - **`render_html.py` + `html_template.html`** — the layered compositor. Config-driven: background
