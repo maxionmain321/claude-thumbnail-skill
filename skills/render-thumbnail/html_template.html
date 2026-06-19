@@ -1,0 +1,184 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: #000; }
+  #stage { position: relative; overflow: hidden; }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<script>
+function el(tag, css, parent) {
+  const e = document.createElement(tag);
+  Object.assign(e.style, css || {});
+  (parent || document.getElementById('stage')).appendChild(e);
+  return e;
+}
+
+window.render = function (cfg, fontCss) {
+  if (fontCss) {
+    const s = document.createElement('style');
+    s.textContent = fontCss;
+    document.head.appendChild(s);
+  }
+  const W = cfg.width || 1280, H = cfg.height || 720;
+  const stage = document.getElementById('stage');
+  stage.style.width = W + 'px';
+  stage.style.height = H + 'px';
+  stage.innerHTML = '';
+
+  // ---- base background ----
+  const bg = cfg.bg || { type: 'gradient', value: 'radial-gradient(120% 120% at 60% 40%, #2F7BF6, #091a3d)' };
+  const bgl = el('div', { width: W + 'px', height: H + 'px', position: 'absolute' });
+  if (bg.type === 'image') {
+    bgl.style.background = `#000 url("${bg.value}") center/cover no-repeat`;
+    bgl.style.filter = `brightness(${1 - (bg.darken || 0)}) blur(${bg.blur || 0}px)`;
+    bgl.style.transform = 'scale(1.06)';
+  } else {
+    bgl.style.background = bg.value;
+  }
+  if (bg.scrim) {
+    el('div', { width: W + 'px', height: H + 'px', position: 'absolute', background: bg.scrim });
+  }
+
+  // ---- context elements (logos / rects / artifacts) ----
+  (cfg.elements || []).forEach(e => {
+    const base = {
+      position: 'absolute', left: (e.x || 0) + 'px', top: (e.y || 0) + 'px',
+      width: (e.w || 100) + 'px', opacity: (e.opacity == null ? 1 : e.opacity),
+      transform: `rotate(${e.rotate || 0}deg)`,
+      filter: e.blur ? `blur(${e.blur}px)` : 'none',
+      mixBlendMode: e.blend || 'normal',
+      borderRadius: (e.radius || 0) + 'px',
+    };
+    if (e.shadow) base.boxShadow = '0 16px 50px rgba(0,0,0,.55)';
+    if (e.type === 'rect') {
+      base.height = (e.h || 100) + 'px';
+      base.background = e.color || '#fff';
+      el('div', base);
+    } else if (e.type === 'chip') {
+      // app-icon style: rounded square (default white) with the logo padded inside
+      const side = e.w || 100;
+      const chip = el('div', Object.assign({}, base, {
+        height: side + 'px', width: side + 'px',
+        background: e.color || '#ffffff', borderRadius: (e.radius || 22) + 'px',
+        boxShadow: '0 10px 28px rgba(0,0,0,.45)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }));
+      const img = el('img', { width: (side - 2 * (e.pad == null ? 18 : e.pad)) + 'px',
+                              height: (side - 2 * (e.pad == null ? 18 : e.pad)) + 'px',
+                              objectFit: 'contain' }, chip);
+      img.src = e.src;
+    } else {
+      const img = el('img', base);
+      if (e.h) base.height = e.h + 'px';
+      Object.assign(img.style, base);
+      img.src = e.src;
+    }
+  });
+
+  // ---- face (pre-baked outlined PNG) ----
+  if (cfg.face && cfg.face.src) {
+    const f = cfg.face;
+    const img = el('img', { position: 'absolute', height: (f.h || 760) + 'px', bottom: (f.dy || 0) + 'px' });
+    if (f.side === 'left') img.style.left = (f.dx || 0) + 'px';
+    else img.style.right = (f.dx || 0) + 'px';
+    img.src = f.src;
+  }
+
+  const FONT = n => ({ anton: 'Anton', montserrat: 'Montserrat', arialblack: 'Arial Black' }[n] || 'Anton');
+
+  // ---- text blocks ----
+  (cfg.texts || []).forEach(t => {
+    const x = t.x || 40, y = t.y || 40;
+    if (t.kind === 'pill') {
+      const p = el('div', {
+        position: 'absolute', left: x + 'px', top: y + 'px',
+        background: t.fill || '#10B981', color: t.color || '#05291c',
+        font: `${t.size || 46}px "${FONT(t.font || 'arialblack')}"`,
+        padding: '10px 26px', borderRadius: '16px', whiteSpace: 'nowrap',
+        boxShadow: '0 10px 30px rgba(0,0,0,.4)', letterSpacing: '0.5px',
+      });
+      p.textContent = t.t;
+      return;
+    }
+    if (t.kind === 'card') {
+      const card = el('div', {
+        position: 'absolute', left: x + 'px', top: y + 'px', width: (t.w || 600) + 'px',
+        background: t.fill || '#fff', borderRadius: (t.radius || 28) + 'px',
+        padding: (t.pad || 32) + 'px', boxShadow: '0 18px 50px rgba(0,0,0,.45)',
+        display: 'flex', flexDirection: 'column', gap: (t.gap || 6) + 'px',
+      });
+      const innerW = (t.w || 600) - 2 * (t.pad || 32);
+      (t.lines || []).forEach(l => {
+        let sz = l.size || 64;
+        const line = el('div', {
+          font: `${sz}px "${FONT(t.font || 'arialblack')}"`,
+          color: l.color || '#111', lineHeight: 1.0, whiteSpace: 'nowrap',
+        }, card);
+        line.textContent = l.t;
+        if (line.scrollWidth > innerW) {  // auto-fit so text never leaves the box
+          sz = Math.floor(sz * innerW / line.scrollWidth);
+          line.style.fontSize = sz + 'px';
+        }
+      });
+      return;
+    }
+    // banner: highlight | gradient | plain  (lines = array of strings)
+    const wrap = el('div', {
+      position: 'absolute', left: x + 'px', top: y + 'px',
+      display: 'flex', flexDirection: 'column', gap: (t.gap || 6) + 'px', alignItems: 'flex-start',
+    });
+    (t.lines || []).forEach(s => {
+      const line = el('div', {
+        font: `${t.size || 88}px "${FONT(t.font || 'arialblack')}"`,
+        lineHeight: (t.lineh ? t.lineh + 'px' : 1.02), whiteSpace: 'nowrap', letterSpacing: '0.5px',
+      }, wrap);
+      if (t.kind === 'highlight') {
+        line.style.background = t.box || '#FFE600';
+        line.style.color = t.color || '#0a0a0a';
+        line.style.padding = '2px 16px';
+        line.style.borderRadius = '8px';
+        line.style.boxShadow = '0 6px 22px rgba(0,0,0,.35)';
+      } else if (t.kind === 'gradient') {
+        const g = t.gradient || ['#FFF3A6', '#FFC400'];
+        line.style.background = `linear-gradient(180deg, ${g[0]}, ${g[1]})`;
+        line.style.webkitBackgroundClip = 'text';
+        line.style.backgroundClip = 'text';
+        line.style.color = 'transparent';
+        line.style.webkitTextStroke = `${t.stroke || 0}px ${t.strokeColor || '#000'}`;
+        line.style.filter = 'drop-shadow(0 5px 10px rgba(0,0,0,.5))';
+      } else {
+        line.style.color = t.color || '#fff';
+        line.style.webkitTextStroke = (t.stroke ? `${t.stroke}px ${t.strokeColor || '#000'}` : '0');
+        line.style.textShadow = '0 4px 14px rgba(0,0,0,.55)';
+        line.style.paintOrder = 'stroke fill';
+      }
+      line.textContent = s;
+    });
+    if (t.subtitle) {
+      const sub = el('div', {
+        font: `${t.subtitle.size || 42}px "${FONT(t.subtitle.font || 'arialblack')}"`,
+        color: t.subtitle.color || '#fff', marginTop: (t.subtitle.gap || 10) + 'px',
+        webkitTextStroke: `${t.subtitle.stroke || 0}px ${t.subtitle.strokeColor || '#06101f'}`,
+        textShadow: '0 3px 10px rgba(0,0,0,.6)', whiteSpace: 'nowrap', paintOrder: 'stroke fill',
+      }, wrap);
+      sub.textContent = t.subtitle.t;
+    }
+  });
+
+  // ---- vignette ----
+  if (cfg.vignette) {
+    el('div', {
+      position: 'absolute', width: W + 'px', height: H + 'px',
+      boxShadow: 'inset 0 0 160px 50px rgba(0,0,0,.55)', pointerEvents: 'none',
+    });
+  }
+  window.__rendered = true;
+};
+</script>
+</body>
+</html>
